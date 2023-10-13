@@ -32,9 +32,9 @@ async def command_start(message: Message):
 async def get_doc(message: Message):
     doc = message.document.file_id
     print(doc) #получение айди файла, который скинули в бот
+    await message.answer('<b>Подождите, файл загружается!</b>')
     file = await bot.get_file(doc)
     file_path = file.file_path
-    await message.answer('<b>Подождите, файл загружается!</b>')
     my_object = io.BytesIO()
     MyBinaryIO = await bot.download_file(file_path, my_object)
     print(MyBinaryIO)
@@ -46,27 +46,24 @@ async def get_doc(message: Message):
         await message.answer(f'ОШИБКА! Формат файла не определен как файл Excel!') #выведет сообщение об ошибке и в терминале
         print('ОШИБКА пользователя: файл НЕ Excel!')
     else:
-        df = pd.read_excel(MyBinaryIO)
         print(df)
         await message.answer('Файл получен!', reply_markup=kb.main1)
 
 @form_router.message(F.text == 'Показать список всех групп')
 async def report(message: Message):
-    try:
-        groups = df['Группа'].unique()
-    except KeyError:
-        await message.answer(f'ОШИБКА! Файл не может быть обработан из-за ошибки в его структуре!')
-        print('ОШИБКА пользователя: нет нужных элементов в структуре таблицы Excel!') #выведет сообщение об ошибке и в терминале
-    else:
+    columns = list(df.columns.values )
+    if 'Группа' and 'Год' and 'Уровень контроля' and 'Личный номер студента' in columns:
         groups = df['Группа'].unique()
         listGroup = ', '.join(groups)
         await message.answer(f'В датасете содержатся оценки следующих групп: {listGroup}', reply_markup=kb.main1)
+    else:
+        await message.answer(f'ОШИБКА! Файл не может быть обработан из-за ошибки в его структуре!')
+        print('ОШИБКА пользователя: нет нужных элементов в структуре таблицы Excel!') #выведет сообщение об ошибке и в терминале
 
 @form_router.message(F.text == 'Выбрать группу')
 async def report(message: Message, state: FSMContext) -> None:
     await state.set_state(Lab.group)
-    await message.answer("Введите номер группы:",
-        reply_markup=ReplyKeyboardRemove())
+    await message.answer("Введите номер группы:", reply_markup=ReplyKeyboardRemove())
 
 @form_router.message(Lab.group)
 async def process_name(message: Message, state: FSMContext) -> None:
